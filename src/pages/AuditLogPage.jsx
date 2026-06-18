@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorAlert from "../components/ErrorAlert";
@@ -8,7 +9,6 @@ import DataTable from "../components/DataTable";
 
 import auditLogService from "../services/auditLogService";
 import auditLogColumns from "../config/auditLogColumns";
-import useCrud from "../hooks/useCrud";
 import usePagination from "../hooks/usePagination";
 
 import exportExcel from "../utils/exportExcel";
@@ -17,18 +17,30 @@ import exportPdf from "../utils/exportPdf";
 function AuditLogPage() {
   const [search, setSearch] = useState("");
 
+  // =====================
+  // Query
+  // =====================
   const {
-    items: auditLogs,
-    loading,
-    error,
-  } = useCrud(auditLogService, "Audit Log");
+    data: auditLogs = [],
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["auditLogs"],
+    queryFn: auditLogService.getAll,
+  });
 
+  // =====================
+  // Filter
+  // =====================
   const filteredAuditLogs = auditLogs.filter((item) =>
-    JSON.stringify(item)
+    JSON.stringify(item ?? {})
       .toLowerCase()
       .includes(search.toLowerCase())
   );
 
+  // =====================
+  // Pagination
+  // =====================
   const {
     currentPage,
     setCurrentPage,
@@ -49,33 +61,41 @@ function AuditLogPage() {
         }}
       />
 
-      {loading && <LoadingSpinner text="Mengambil data audit log..." />}
-      <ErrorAlert message={error} />
+      {isLoading && (
+        <LoadingSpinner text="Mengambil data audit log..." />
+      )}
 
-      {!loading && !error && (
+      <ErrorAlert
+        message={queryError ? "Gagal mengambil data audit log." : ""}
+      />
+
+      {!isLoading && !queryError && (
         <>
+          <div className="mb-3">
+            <button
+              className="btn btn-success me-2"
+              onClick={() =>
+                exportExcel(filteredAuditLogs, "audit-log.xlsx")
+              }
+            >
+              Export Excel
+            </button>
 
-          <button
-            className="btn btn-success mb-3"
-            onClick={() => exportExcel(filteredAuditLogs, "audit-log.xlsx")}
-          >
-            Export Excel
-          </button>
+            <button
+              className="btn btn-danger"
+              onClick={() =>
+                exportPdf(
+                  auditLogColumns,
+                  filteredAuditLogs,
+                  "audit-log.pdf",
+                  "Audit Log"
+                )
+              }
+            >
+              Export PDF
+            </button>
+          </div>
 
-          <button
-            className="btn btn-danger mb-3 ms-2"
-            onClick={() =>
-              exportPdf(
-                auditLogColumns,
-                filteredAuditLogs,
-                "audit-log.pdf",
-                "Audit Log"
-              )
-            }
-          >
-            Export PDF
-          </button>
-          
           <DataTable
             columns={auditLogColumns}
             data={paginatedAuditLogs}

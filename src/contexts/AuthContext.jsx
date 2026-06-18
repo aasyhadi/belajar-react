@@ -4,20 +4,17 @@ import authService from "../services/authService";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState({
+  const getUserFromStorage = () => ({
     name: localStorage.getItem("userName"),
     role: localStorage.getItem("role"),
     token: localStorage.getItem("token"),
   });
 
+  const [user, setUser] = useState(getUserFromStorage());
+
   const login = async (email, password) => {
     await authService.login(email, password);
-
-    setUser({
-      name: localStorage.getItem("userName"),
-      role: localStorage.getItem("role"),
-      token: localStorage.getItem("token"),
-    });
+    setUser(getUserFromStorage());
   };
 
   const logout = () => {

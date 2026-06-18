@@ -4,8 +4,9 @@ import { useTheme } from "../contexts/ThemeContext";
 
 function MainLayout({ children }) {
   const { user, logout } = useAuth();
-  const role = user?.role;
   const { theme, toggleTheme } = useTheme();
+
+  const role = user?.role;
 
   return (
     <>
@@ -32,11 +33,27 @@ function MainLayout({ children }) {
           </Link>
         )}
 
-        {role === "Super Admin" && (
-          <Link className="btn btn-outline-light btn-sm me-2" to="/audit-log">
-            Audit Log
+        {(role === "Admin" || role === "Super Admin") && (
+          <Link className="btn btn-outline-light btn-sm me-2" to="/krs">
+            KRS
           </Link>
         )}
+
+        {role === "Super Admin" && (
+          <>
+            <Link className="btn btn-outline-light btn-sm me-2" to="/users">
+              Users
+            </Link>
+
+            <Link className="btn btn-outline-light btn-sm me-2" to="/audit-log">
+              Audit Log
+            </Link>
+          </>
+        )}
+
+        <Link className="btn btn-outline-light btn-sm me-2" to="/upload-file">
+          Upload File
+        </Link>
 
         <button
           className="btn btn-outline-warning btn-sm me-2"

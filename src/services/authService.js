@@ -14,6 +14,20 @@ const login = async (email, password) => {
   return response.data;
 };
 
+const refreshToken = async () => {
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  const response = await api.post("/auth/refresh", {
+    refreshToken,
+  });
+
+  localStorage.setItem("token", response.data.data.token);
+  localStorage.setItem("refreshToken", response.data.data.refreshToken);
+
+  return response.data.data.token;
+};
+
 export default {
   login,
+  refreshToken,
 };

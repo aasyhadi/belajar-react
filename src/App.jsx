@@ -8,6 +8,9 @@ import MataKuliahPage from "./pages/MataKuliahPage";
 import MahasiswaDetailPage from "./pages/MahasiswaDetailPage";
 import { ToastContainer } from "react-toastify";
 import AuditLogPage from "./pages/AuditLogPage";
+import UserPage from "./pages/UserPage";
+import FileUploadPage from "./pages/FileUploadPage";
+import KrsPage from "./pages/KrsPage";
 
 function App() {
   return (
@@ -66,11 +69,40 @@ function App() {
         />
 
         <Route
+          path="/krs"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Super Admin"]}>
+              <MainLayout>
+                <KrsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/upload-file"
+          element={<FileUploadPage />}
+        />
+
+        <Route
           path="/audit-log"
           element={
             <ProtectedRoute allowedRoles={["Super Admin"]}>
               <MainLayout>
                 <AuditLogPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute
+              allowedRoles={["Super Admin"]}
+            >
+              <MainLayout>
+                <UserPage />
               </MainLayout>
             </ProtectedRoute>
           }

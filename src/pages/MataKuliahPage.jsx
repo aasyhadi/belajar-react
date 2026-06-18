@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import MataKuliahForm from "../components/MataKuliahForm";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -8,28 +13,32 @@ import SearchBox from "../components/SearchBox";
 import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
 import DataTable from "../components/DataTable";
+import TableSkeleton from "../components/TableSkeleton";
 
 import mataKuliahService from "../services/mataKuliahService";
 import mataKuliahColumns from "../config/mataKuliahColumns";
 import usePagination from "../hooks/usePagination";
-import useCrud from "../hooks/useCrud";
 
 import exportExcel from "../utils/exportExcel";
 import exportPdf from "../utils/exportPdf";
 
 function MataKuliahPage() {
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const {
-    items: mataKuliah,
-    loading,
-    error,
-    showConfirm,
-    setShowConfirm,
-    saveItem,
-    askDelete,
-    confirmDelete,
-  } = useCrud(mataKuliahService, "Mata kuliah");
+    data: mataKuliahData = [],
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["mataKuliah"],
+    queryFn: mataKuliahService.getAll,
+  });
+
+  const mataKuliah = Array.isArray(mataKuliahData) ? mataKuliahData : [];
 
   const filteredMataKuliah = mataKuliah.filter((item) =>
     (item.namaMataKuliah ?? item.nama ?? "")
@@ -44,13 +53,46 @@ function MataKuliahPage() {
     paginatedData: paginatedMataKuliah,
   } = usePagination(filteredMataKuliah, 5);
 
-  const handleCreate = async (formData) => {
-    try {
-      await saveItem(formData);
-    } catch (error) {
+  const saveMutation = useMutation({
+    mutationFn: (formData) => mataKuliahService.create(formData),
+    onSuccess: () => {
+      toast.success("Data mata kuliah berhasil disimpan.");
+      queryClient.invalidateQueries({ queryKey: ["mataKuliah"] });
+    },
+    onError: () => {
       toast.error("Gagal menyimpan mata kuliah.");
-      console.error(error);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => mataKuliahService.remove(id),
+    onSuccess: () => {
+      toast.success("Data mata kuliah berhasil dihapus.");
+      setShowConfirm(false);
+      setDeleteId(null);
+      queryClient.invalidateQueries({ queryKey: ["mataKuliah"] });
+    },
+    onError: () => {
+      toast.error("Gagal menghapus mata kuliah.");
+    },
+  });
+
+  const handleCreate = (formData) => {
+    saveMutation.mutate(formData);
+  };
+
+  const handleDelete = (id) => {
+    setDeleteId(id);
+    setShowConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteId) {
+      toast.error("ID mata kuliah tidak ditemukan.");
+      return;
     }
+
+    deleteMutation.mutate(deleteId);
   };
 
   return (
@@ -70,13 +112,14 @@ function MataKuliahPage() {
         }}
       />
 
-      {loading && <LoadingSpinner text="Mengambil data mata kuliah..." />}
+      {isLoading && <TableSkeleton rows={5} columns={3} />}
 
-      <ErrorAlert message={error} />
+      <ErrorAlert
+        message={queryError ? "Gagal mengambil data mata kuliah." : ""}
+      />
 
-      {!loading && !error && (
+      {!isLoading && !queryError && (
         <>
-
           <div className="mb-3">
             <button
               className="btn btn-success me-2"
@@ -108,7 +151,7 @@ function MataKuliahPage() {
             actions={(item) => (
               <button
                 className="btn btn-danger btn-sm"
-                onClick={() => askDelete(item.id)}
+                onClick={() => handleDelete(item.id)}
               >
                 Hapus
               </button>
@@ -127,7 +170,10 @@ function MataKuliahPage() {
         show={showConfirm}
         title="Hapus Mata Kuliah"
         message="Yakin ingin menghapus data mata kuliah ini?"
-        onCancel={() => setShowConfirm(false)}
+        onCancel={() => {
+          setShowConfirm(false);
+          setDeleteId(null);
+        }}
         onConfirm={confirmDelete}
       />
     </div>
